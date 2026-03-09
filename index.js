@@ -318,13 +318,9 @@ Current mood: ${mood}
       await generateImage(prompt, message.channel);
     }
 
-  } catch(err){
-    console.log("AI ERROR:", err);
-    await message.reply("something went wrong 💔");
-  }
-});
-client.on("clientReady", () => {
-  console.log("AI Companion Bot Online");
-});
-console.log("Logging into Discord...");
-client.login(process.env.TOKEN);
+  } client.on("error", console.error);
+client.on("shardError", console.error);
+
+client.login(process.env.TOKEN)
+  .then(() => console.log("Discord login successful"))
+  .catch(err => console.error("Login failed:", err));
