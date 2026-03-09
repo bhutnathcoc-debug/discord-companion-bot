@@ -318,12 +318,14 @@ Current mood: ${mood}
       await generateImage(prompt, message.channel);
     }
 
- } catch (err) {
+ }catch (err) {
   console.error(err);
 }
 
 client.on("error", console.error);
 client.on("shardError", console.error);
+
+console.log("Logging into Discord...");
 
 client.login(process.env.TOKEN)
   .then(() => console.log("Discord login successful"))
