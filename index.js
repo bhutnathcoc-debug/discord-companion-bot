@@ -318,7 +318,11 @@ Current mood: ${mood}
       await generateImage(prompt, message.channel);
     }
 
-  } client.on("error", console.error);
+ } catch (err) {
+  console.error(err);
+}
+
+client.on("error", console.error);
 client.on("shardError", console.error);
 
 client.login(process.env.TOKEN)
