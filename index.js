@@ -275,6 +275,7 @@ Current mood: ${mood}
     );
 
     const data = await response.json();
+    console.log("HF RESPONSE:", JSON.stringify(data, null, 2));
     const reply = data?.choices?.[0]?.message?.content || "i'm not sure what to say";
 
     history.push({ role: "assistant", content: reply });
