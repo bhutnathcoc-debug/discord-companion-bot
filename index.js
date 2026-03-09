@@ -323,5 +323,5 @@ Current mood: ${mood}
     await message.reply("something went wrong 💔");
   }
 });
-
+console.log("Logging into Discord...");
 client.login(process.env.TOKEN);
