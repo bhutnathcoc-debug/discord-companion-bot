@@ -1,14 +1,4 @@
 require("dotenv").config();
-const express = require("express");
-const app = express();
-
-app.get("/", (req, res) => {
-  res.send("Bot running");
-});
-
-app.listen(3000, () => {
-  console.log("Web server started");
-});
 let unansweredMessages = 0;
 const { Client, GatewayIntentBits, Partials } = require("discord.js");
 const fetch = require("node-fetch");
@@ -22,73 +12,53 @@ let history = [];
 let lastInteraction = Date.now();  // added 'let' (was missing)
 unansweredMessages = 0;
 
-async function generateImage(prompt, channel) {
-  const character = "19 year old girl, baby face, soft facial features, dark brown hair, slim waist, 36d breasts size, round ass/hips, body proportions";
-  const baseStyle = "candid photography, natural lighting, realistic photo, DSLR camera, depth of field, sharp focus";
+async function generateImage(prompt, channel, history = []) {
+  const modelId = "stabilityai/stable-diffusion-2-1";
 
-  const finalPrompt = `
-natural casual photo, everyday moment
+  // Build context from recent chat
+  const recentChat = history
+    .slice(-8) // last 8 messages for good context
+    .map(m => `${m.role === "user" ? "You" : "Me"}: ${m.content}`)
+    .join("\n");
 
-person:
-${character}
+  const finalPrompt = `Photorealistic candid photo of a beautiful 19-year-old girl with baby face, soft innocent features, long dark brown hair, slim waist, natural curvy figure, in cozy home setting. Scene based exactly on this conversation: ${recentChat}\nCurrent request: ${prompt.trim()}. Relaxed natural pose, unaware of camera, warm natural daylight, sharp focus, realistic skin, perfect anatomy, 8k quality`;
 
-scene:
-${prompt}
-
-pose:
-relaxed posture, not posing, candid moment, unaware of camera
-
-environment:
-normal home environment, natural lighting
-
-quality:
-photorealistic, accurate anatomy, natural skin texture, well formed hands
-
-negative prompt:
-deformed body, extra fingers, missing fingers, fused fingers, malformed hands, distorted face, bad anatomy, ugly, mutation, extra limbs
-`;
+  const negative = "blurry, deformed, extra limbs, bad hands, ugly, cartoon, low quality, text, watermark";
 
   await channel.sendTyping();
 
   try {
-    const response = await fetch("https://modelslab.com/api/v6/images/text2img", {
+    const response = await fetch(`https://router.huggingface.co/hf-inference/models/${modelId}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        Authorization: `Bearer ${process.env.HF_TOKEN}`,
+        "Content-Type": "application/json"
+      },
       body: JSON.stringify({
-        key: process.env.MODELSLAB_KEY,
-        model_id: "omnigenxl-nsfw-sfw",
-        prompt: finalPrompt,
-        negative_prompt: "deformed body, extra fingers, missing fingers, fused fingers, malformed hands, distorted face, bad anatomy, ugly, mutation, extra limbs",
-        width: 768,
-        height: 1024,
-        samples: 1,
-        num_inference_steps: 30,
-        seed: Math.floor(Math.random() * 10000000),
-        safety_checker: "no",
-        enhance_prompt: "yes"
+        inputs: finalPrompt,
+        parameters: {
+          negative_prompt: negative,
+          num_inference_steps: 15,
+          guidance_scale: 7.5,
+          width: 768,
+          height: 1024
+        }
       })
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.log("ModelsLab error:", response.status, errorText);
-      await channel.send(`Hmm… something went wrong with the picture maker (error ${response.status}). Try again, my love? 😔`);
+      await channel.send("Picture maker needs a little rest… try again soon, baby? 😔");
       return;
     }
 
-    const data = await response.json();
-
-    if (data.status === "success" && data.output && data.output.length > 0) {
-      const imageUrl = data.output[0];
-      await channel.send({ files: [imageUrl] });
-    } else {
-      console.log("ModelsLab bad response:", data);
-      await channel.send("No picture came back… what naughty prompt did we use, baby? Tell mummy 🤗");
-    }
+    const buffer = await response.arrayBuffer();
+    await channel.send({
+      files: [{ attachment: Buffer.from(buffer), name: "our_moment.png" }]
+    });
 
   } catch (err) {
-    console.error("generateImage crashed:", err);
-    await channel.send("Oopsie… picture time broke. Hug me tight and we’ll try again soon 💕");
+    console.error(err);
+    await channel.send("Oops… hug Mummy tight, we'll get the right picture next time 💕");
   }
 }
 
@@ -122,7 +92,7 @@ async function sendHumanLike(channel, text){
   }
 }
 
-client.once("clientReady", () => {  // fixed event name: "ready" not "clientReady"
+client.once("clientReady", () => { // fixed event name: "ready" not "clientReady"
   console.log("AI Companion Bot Online");
 
   setInterval(async () => {
@@ -224,7 +194,7 @@ client.on("messageCreate", async (message) => {
     const imagePrompt = data?.choices?.[0]?.message?.content || "candid photo of girl in bedroom";
 
     console.log("GENERATED IMAGE PROMPT:", imagePrompt);
-    await generateImage(imagePrompt, message.channel);
+    await generateImage(imagePrompt, message.channel, history);
     return;
   }
 
@@ -318,15 +288,10 @@ Current mood: ${mood}
       await generateImage(prompt, message.channel);
     }
 
- }catch (err) {
-  console.error(err);
-}
+  } catch(err){
+    console.log("AI ERROR:", err);
+    await message.reply("something went wrong 💔");
+  }
+});
 
-client.on("error", console.error);
-client.on("shardError", console.error);
-
-console.log("Logging into Discord...");
-
-client.login(process.env.TOKEN)
-  .then(() => console.log("Discord login successful"))
-  .catch(err => console.error("Login failed:", err));
+client.login(TOKEN);
