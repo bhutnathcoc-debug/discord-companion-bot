@@ -1,4 +1,14 @@
 require("dotenv").config();
+const express = require("express");
+const app = express();
+
+app.get("/", (req, res) => {
+  res.send("Bot running");
+});
+
+app.listen(3000, () => {
+  console.log("Web server started");
+});
 let unansweredMessages = 0;
 const { Client, GatewayIntentBits, Partials } = require("discord.js");
 const fetch = require("node-fetch");
