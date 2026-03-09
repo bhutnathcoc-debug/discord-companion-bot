@@ -122,7 +122,7 @@ async function sendHumanLike(channel, text){
   }
 }
 
-client.once("ready", () => {  // fixed event name: "ready" not "clientReady"
+client.once("clientReady", () => {  // fixed event name: "ready" not "clientReady"
   console.log("AI Companion Bot Online");
 
   setInterval(async () => {
