@@ -323,5 +323,8 @@ Current mood: ${mood}
     await message.reply("something went wrong 💔");
   }
 });
+client.on("clientReady", () => {
+  console.log("AI Companion Bot Online");
+});
 console.log("Logging into Discord...");
 client.login(process.env.TOKEN);
